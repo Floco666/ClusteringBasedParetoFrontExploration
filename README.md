@@ -6,6 +6,7 @@ Clustering-Based NRP Pareto Front Exploration
 # Authors: 
 - Rottoli, Giovanni Daián
 - Casanova, Carlos
+- Federico, Facundo
 
 # Institution:
 - Universidad Tecnológica Nacional, Facultad Regional Concepción del Uruguay
