@@ -1,0 +1,69 @@
+import dash_core_components as dcc
+import dash_html_components as html
+
+# Constantes
+MAXCLUST = 4  # máxima cantidad de clusters
+
+cluster_por_nivel = []
+
+layout = html.Div([
+    html.H2("Clustering-based Pareto-Front exploration", style={'text-align': 'center'}),
+    dcc.Slider(
+        id="slider_nivel",
+        min=0,
+        max=10,
+        value=0,
+        step=1,
+        marks={0: '0'}, # Ponerlo como default, luego se irá sobreescribiendo, no hace falta la variable global.
+        included=False,
+        disabled=True
+    ),
+    html.Div([
+        html.Div([
+            html.Button('Zoom out', id='btn-zoomout', n_clicks=0, style={'width': "30%"}, disabled=False),
+            html.Button('Zoom in', id='btn-zoomin', n_clicks=0, style={'width': "30%"}, disabled=False),
+            dcc.RadioItems(
+                id="cluster_seleccionado",
+                # list comprehension to save time avoiding loops
+                options=[{'label': 'Cluster{}'.format(c), 'value': c} for c in range(1, MAXCLUST + 1)],
+                labelStyle={'display': 'inline-block'},
+                value=1
+            )
+        ]),
+        html.Div([
+            html.H4("Desired number of clusters", style={'text-align': 'center'}),
+            dcc.Slider(
+                id="slider_num_clusters",
+                min=2,
+                max=MAXCLUST,
+                value=MAXCLUST,
+                step=1,
+                # dict from list comprehension to save time avoiding loops
+                marks=dict(zip(range(2, MAXCLUST+1), [str(x) for x in range(2, MAXCLUST+1)])),
+                included=False,
+            )
+        ])
+    ], style={'columnCount': 2}),
+    html.Div([
+        dcc.Graph(id='dendrogram_graph'),
+        dcc.Graph(id='profit_cost_graph')
+    ], style={'columnCount': 2}),
+
+    html.Hr(),
+    html.H3("Requirement wordclouds", style={'text-align': 'center'}),
+    html.Div([
+        dcc.Graph(id='wordcloud_req_cluster1', figure={}),
+        dcc.Graph(id='wordcloud_req_cluster2', figure={}),
+        dcc.Graph(id='wordcloud_req_cluster3', figure={}),
+        dcc.Graph(id='wordcloud_req_cluster4', figure={})
+    ], style={'columnCount': 4}),
+
+    html.Hr(),
+    html.H3("Stakeholder wordclouds", style={'text-align': 'center'}),
+    html.Div([
+        dcc.Graph(id='wordcloud_stk_cluster1', figure={}),
+        dcc.Graph(id='wordcloud_stk_cluster2', figure={}),
+        dcc.Graph(id='wordcloud_stk_cluster3', figure={}),
+        dcc.Graph(id='wordcloud_stk_cluster4', figure={})
+    ], style={'columnCount': 4})
+])
