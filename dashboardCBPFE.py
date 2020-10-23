@@ -414,8 +414,8 @@ max_cost = None
 max_profit = None
 
 # Read reqs and stk categories in JSON format
-categorias_requerimientos = json.load(open("requerimientos.json", "r"))
-categorias_stakeholders = json.load(open("stakeholders.json", "r"))
+categorias_requerimientos = json.load(open("assets/requerimientos.json", "r"))
+categorias_stakeholders = json.load(open("assets/stakeholders.json", "r"))
 
 palabras_clave = []
 for x in range(len(categorias_requerimientos)):
