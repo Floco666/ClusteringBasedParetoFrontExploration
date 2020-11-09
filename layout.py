@@ -24,9 +24,11 @@ start_layout = html.Div([
             'textAlign': 'center',
             'margin': '10px'
         },
-        multiple=False
+        multiple=True,
+        contents=[],
+        filename=[]
     ),
-    dcc.Graph(id='upload_graph', responsive=True, style={'height': '30vw'}),
+    dcc.Markdown(id= 'error_list', children=[]), #"* Error 1 \n* Error 2"
     html.Button('Continue', id='btn-continue', style={'font-family' : 'helvetica', 'textAlign' : 'center'}, disabled=False)
 ])
 

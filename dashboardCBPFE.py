@@ -11,6 +11,7 @@ from wordcloud import WordCloud, STOPWORDS
 import json
 import base64
 import io
+import ast
 
 import dash  # (version 1.12.0) pip install dash
 from dash.dependencies import Input, Output, State
@@ -216,8 +217,8 @@ def plot_all(nivel, n_deseado_de_clusters, array_filtros):
     dn.update_yaxes(showticklabels=False)
     dn.update_layout(margin=dict(l=0, r=0, b=0, t=0))
 
-    wcreq = plot_wordclouds(indices, "reqs", categorias_requerimientos, nivel)
-    wcstk = plot_wordclouds(indices, "stks", categorias_stakeholders, nivel)
+    wcreq = plot_wordclouds(indices, "reqs", requirements, nivel)
+    wcstk = plot_wordclouds(indices, "stks", stakeholders, nivel)
 
     estadisticos = cluster_statistics(indices, nivel, n_generado_de_clusters)
     stat = {1: "", 2: "", 3: "", 4: ""}
@@ -251,6 +252,51 @@ def obtener_indices(nivel):
         indices = [True] * len(data)
     return indices
 
+def validate_files(list_upload):
+    data_isok = False
+    reqs_isok = False
+    stks_isok = False
+    error_list = []
+
+    if "pareto_front.json" in list_upload.keys():
+        content_type, content_string = list_upload["pareto_front.json"].split(',')
+        decoded = base64.b64decode(content_string)
+
+        dataframe = pd.read_json(io.BytesIO(decoded), orient='index', dtype={'reqs': str, 'stks': str})
+        if set(['id','profit','cost','reqs','stks']).issubset(dataframe.columns):
+            if (len(dataframe) >= 3):
+                data_isok = True
+            else: error_list.append("The file 'pareto_front.json' must have at least 3 elements")
+        else: error_list.append("The file 'pareto_front.json' does not meet the standard (it must have 'id','profit','cost','reqs' and 'stks' fields)")
+    else: error_list.append("The file 'pareto_front.json' is missing")
+
+    if "requirements.json" in list_upload.keys():
+        content_type, content_string = list_upload["requirements.json"].split(',')
+        decoded = ast.literal_eval((base64.b64decode(content_string)).decode("UTF-8"))
+
+        if data_isok:
+            if (len(decoded) == len(dataframe['reqs'][0])):
+                if (("id" in decoded['0'].keys()) and ("keys" in decoded['0'].keys())):
+                    reqs_isok = True
+                else: error_list.append("The file 'requirements.json' does not meet the standard (it must have 'id' and 'keys' fields)")
+            else: error_list.append("The file 'requirements.json' do not fit the lenght of 'pareto_front.json' 'reqs' field")
+    else: error_list.append("The file 'requirements.json' is missing")
+
+    if "stakeholders.json" in list_upload.keys():
+        content_type, content_string = list_upload["stakeholders.json"].split(',')
+        decoded = ast.literal_eval((base64.b64decode(content_string)).decode("UTF-8"))
+
+        if data_isok:
+            if (len(decoded) == len(dataframe['stks'][0])):
+                if (("id" in decoded['0'].keys()) and ("keys" in decoded['0'].keys())):
+                    stks_isok = True
+                else: error_list.append("The file 'stakeholders.json' does not meet the standard (it must have 'id' and 'keys' fields)")
+            else: error_list.append("The file 'stakeholders.json' do not fit the lenght of 'pareto_front.json' 'stks' field")
+    else: error_list.append("The file 'stakeholders.json' is missing")
+
+    return error_list
+# ------------------------------------------------------------------------------
+
 app = dash.Dash(__name__)
 # App layout
 app.title = "ParetoFrontExploration"
@@ -260,37 +306,56 @@ app.layout = layout
 
 @app.callback(
     [Output(component_id='btn-continue',  component_property='disabled'),
-     Output(component_id='upload_graph',  component_property='figure')],
-    [Input(component_id='upload-data',    component_property='contents')]
+     Output(component_id='error_list',    component_property='children')],
+    [Input(component_id='upload-data',    component_property='contents')],
+    [State(component_id='upload-data',    component_property='filename')]
 )
-def upload_data(content):
+def upload_data(list_contents, list_filenames):
     """
     Callback function for uploading the dataframe.
     :content: .json file that contains the dataframe.
     :return: a boolean that disables the "Continue" button and a graph of the dataframe.
     """
-
-    disabled = True
-    grafico = {}
     global data
+    global requirements
+    global stakeholders
+    global palabras_clave
 
-    #The file will only be valid if it's a .json with all the columns needed to funtion.
-    try:
-        content_type, content_string = content.split(',')
+    continue_disabled = True
+    list_upload = dict(zip(list_filenames, list_contents))
+    error_list = validate_files(list_upload)
+
+    if (error_list == []):
+        continue_disabled = False
+
+        content_type, content_string = list_upload["pareto_front.json"].split(',')
         decoded = base64.b64decode(content_string)
+        data = pd.read_json(io.BytesIO(decoded), orient='index', dtype={'reqs': str, 'stks': str})
+        
+        content_type, content_string = list_upload["requirements.json"].split(',')
+        requirements = ast.literal_eval((base64.b64decode(content_string)).decode("UTF-8"))
+        
+        content_type, content_string = list_upload["stakeholders.json"].split(',')
+        stakeholders = ast.literal_eval((base64.b64decode(content_string)).decode("UTF-8"))
 
-        dataframe = pd.read_json(io.BytesIO(decoded), orient='index', dtype={'reqs': str, 'stks': str})
-        if set(['id','profit','cost','reqs','stks']).issubset(dataframe.columns):
-            data = dataframe
-            disabled = False
-            grafico = px.scatter(data, x="profit", y="cost", hover_data=['id'])
-            grafico.update_layout(coloraxis_showscale=False, margin=dict(l=0, r=0, b=0, t=0))
-        else:
-            raise Exception("DataFrame invalido")
-    except:
-        print("Archivo invalido")
+        palabras_clave = []
+        for x in range(len(requirements)):
+            palabras_clave.append({
+                'label' : requirements[str(x)]['id'],
+                'value' : "reqs,{}".format(x)
+                })
+        for x in range(len(stakeholders)):
+            palabras_clave.append({
+                'label' : stakeholders[str(x)]['id'],
+                'value' : "stks,{}".format(x)
+                })
 
-    return (disabled, grafico)
+
+    reporte_errores = ""
+    for error in error_list:
+        reporte_errores += "\n* " + error
+
+    return (continue_disabled, reporte_errores)
 
 @app.callback(
     Output(component_id='page_content',    component_property='children'),
@@ -412,22 +477,6 @@ def update_graphs(n_clicks_restore, n_clicks_out, n_clicks_in, num_clusters, key
 data = None 
 max_cost = None 
 max_profit = None
-
-# Read reqs and stk categories in JSON format
-categorias_requerimientos = json.load(open("assets/requerimientos.json", "r"))
-categorias_stakeholders = json.load(open("assets/stakeholders.json", "r"))
-
-palabras_clave = []
-for x in range(len(categorias_requerimientos)):
-    palabras_clave.append({
-        'label' : categorias_requerimientos[str(x)]['id'],
-        'value' : "reqs,{}".format(x)
-        })
-for x in range(len(categorias_stakeholders)):
-    palabras_clave.append({
-        'label' : categorias_stakeholders[str(x)]['id'],
-        'value' : "stks,{}".format(x)
-        })
 
 array_filtros = []
 
