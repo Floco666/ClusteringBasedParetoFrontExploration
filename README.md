@@ -1,15 +1,14 @@
 # ClusteringBasedParetoFrontExploration
-Clustering-Based NRP Pareto Front Exploration
-
-[![DOI](https://zenodo.org/badge/207404503.svg)](https://zenodo.org/badge/latestdoi/207404503)
+Clustering-Based Pareto Front Exploration Software
 
 # Authors: 
-- Rottoli, Giovanni Daián
+- Rottoli, Giovanni Daián 
 - Casanova, Carlos
 - Federico, Facundo
 
 # Institution:
-- Universidad Tecnológica Nacional, Facultad Regional Concepción del Uruguay
+- Universidad Tecnológica Nacional, Facultad Regional Concepción del Uruguay.
+
 
 
 
